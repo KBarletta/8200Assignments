@@ -1,6 +1,53 @@
-Hello, World!
-Summary of Variables in college.Rdata file
-Calculate the average earnings for individuals at the most selective colleges, then compare that with individuals at the least selective colleges in the dataset.
-Find a way to determine whether colleges with very high SAT scores tend to be larger or smaller than colleges with low SAT scores.
-Plot the relationship between cost and debt. What do you see? Does this surprise you?
-Now, provide separate plots for cost and debt by control of the institution.
+---
+title: "01_Assignment_Barletta"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+#ASSIGNMENT 1 
+
+prin('Hello, World!')
+
+#Calculate average earnings for individuals at the most selective colleges and at the least selective colleges. 
+
+```{r combining commands}
+## What's the average median debt for very selective schools?
+sc%>%filter(adm_rate<.1)%>%summarize(mean_earnings=mean(md_earn_wne_p6,na.rm=TRUE))
+
+## And for not very selective schools?
+sc%>%filter(adm_rate>.3)%>%summarize(mean_earnings=mean(md_earn_wne_p6,na.rm=TRUE))
+```
+##the data above shows that mean earnings for individuals at the most selective colleges (admissions rate <10%) = 53,500 while mean earnings for individuals at the least selective colleges (admissions rate > 30%) = $34,747)
+
+#Find a way to determine whether colleges with very high SAT scores tend to be larger or smaller than colleges with low SAT scores.
+
+```{r}
+ggplot(data = sc) + 
+  geom_point(mapping = aes(x = ugds, y = sat_avg))
+```
+##Based on this chart, there does not seem to be a relationship between college size and average SAT score. The smallest colleges have average SAT scores ranging from very low to very high. The larger colleges have less variation in average SAT score. Once a college size increases above 20,000 undergrads, average SAT scores stay between 1000 and 1350. 
+
+#Plot the relationship between cost and debt. What do you see? Does this surprise you?
+```{r}
+ggplot(data = sc) + 
+  geom_point(mapping = aes(x = costt4_a, y = debt_mdn))
+```
+##The graph above shows no clear relationship between cost of attendance and median debt. This does not surprise me, because I know that mid-career salaries are usually most strongly related to field of study than they are to which college a student attended.
+
+#Now, provide separate plots for cost and debt by control of the institution.
+
+```{r summarize}
+sc%>%summarize(mean_debt=mean(debt_mdn,na.rm=TRUE))
+```
