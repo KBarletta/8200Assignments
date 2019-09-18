@@ -2,8 +2,12 @@
 title: "02_Assignment_Barletta"
 output: html_document
 ---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-```{r  include=FALSE}
+```{r  include=TRUE, warnings=TRUE}
+library(knitr)
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(plotly)
@@ -13,21 +17,6 @@ library(Metrics)
 ```{r data}
 load("pd.Rdata")
 ```
-
-The codebook for this dataset is stored as another dataset, `labels_explain`. The first column in this dataset is variable names, the second column is a full explanation of that variable. 
-
-```{r explain_date}
-
-## Full explanation of data in codebook
-load("pd_lab_explain.Rdata")
-
-#or use View
-#View(lab_explain)
-```
-
-
-
-#PROBLEM SET 2 
 
 #QUESTION 1 - CALCULATE THE MEAN OF THE OUTCOME
 
@@ -54,6 +43,12 @@ rmse_uncond_mean
 #QUESTION 4 - CALCULATE THE MEAN OF THE OUTCOME AT LEVELS OF A PREDICTOR VARIABLE
 
 #ATTEMPT NUMBER ONE 
+
+```{r}
+pd<-pd%>%mutate(personhhlevel=ntile(person_per_hh,4))
+pd%>%select(county,personhhlevel,person_per_hh)%>%View()
+table(pd$personhhlevel)
+```
 
 ```{r}
 pd%>%group_by(median_hh_inc)%>% ## Group by predictor
@@ -116,102 +111,27 @@ gg_p<-ggplotly(gg)
 gg_p
 ```
 
-#QUESTION 5 - Use these conditional means as a prediction: for every county, use the conditional mean to provide a ‘’best guess” as to that county’s level of the outcome.
-
-#in other words: use the conditional mean as a best guess at that county's level of homeownership
-
-#My predictions are that counties in the 1st quartile will have ownership 
-
-Our notation for this predictor will be:
-
-$$\hat{Y}=(\bar{Y}|X=x) $$
-
-That is, the predicted value of y, $\bar{Y}$ is equal to the mean value of $Y$ given our predictor $X$ (college graduate levels in this case) is equal to a given value of $X$, denoted by $x$. 
-
-Let's see what happened to our RMSE when we did a conditional as opposed to an unconditional mean. 
-```{r}
-rmse_cond_mean_one<-rmse(pd$percapinc.2010,pd$pred_income_college)
-rmse_cond_mean_one
-```
-
-
-*Quick Exercise: Calculate per capita income as a function of the proportion of the county with a high school education*
-
-We can continue "binning" the data to define averages by more and more subgroups. For instance, we might want to calculate the average income by education AND home ownership rate.
-
-## New Variable Home Ownership Rate
-```{r}
-## Create a variable for quartiles of college education
-pd<-pd%>%mutate(coll_grad_pc=ntile(homeown_rate,4))
-```
+#5 QUESTION 5: USE THESE CONDITIONAL MEANS AS A PREDICTION 
 
 ```{r}
-pd%>%group_by(coll_grad_pc)%>% ## Group by predictor
+
+##pd<-pd%>%mutate(coll_grad_level=ntile(coll_grad_pc,4))
+
+pd<-pd%>%group_by(personhhlevel)%>% ## Group by predictor
   ##Calculate mean at each level of predictor
-  summarise(pred_income_college=mean(pred_income_college))
-```
-
-```{r}
-## Create a variable for quartiles of college education
-pd<-pd%>%mutate(homeown_rate_level=ntile(homeown_rate,4))
-```
-
-```{r}
-pd%>%group_by(homeown_rate_level)%>% ## Group by predictor
-  ##Calculate mean at each level of predictor
-  summarise(pred_income_homeown_rate=mean(percapinc.2010))
-```
-
-
-```{r}
-pd<-pd%>%group_by(coll_grad_level,homeown_rate_level)%>% ## Group by predictor
-  ##Calculate mean at each level of predictor
-  mutate(pred_income_coll_and_homeown=mean(percapinc.2010))%>% 
+  mutate(pred_personhhlevel=mean(percapinc.2010))%>%
   ## Ungroup
   ungroup()%>% 
   #Rank by prediction, with ties sorted randomly
-  mutate(pred_income_coll_and_homeown_rank=rank(pred_income_coll_and_homeown,
-                                                ties.method="random"))
+  mutate(pred_personhhlevel_rank=rank(pred_personhhlevel,ties.method="random"))
+
+pd%>%select(county,person_per_hh,personhhlevel,pred_personhhlevel)%>%View()
+
 ```
 
+# QUESTION 6 CALCULATE A SUMMARY MEASURE OF THE ERROR IN YOUR PREDICTIONS 
+
 ```{r}
-rmse_cond_mean_two<-rmse(pd$percapinc.2010,pd$pred_income_coll_and_homeown)
+rmse_cond_mean_two<-rmse(pd$person_per_hh,pd$pred_personhhlevel)
 rmse_cond_mean_two
 ```
-
-```{r}
-## Create a variable for quartiles of college education
-pd<-pd%>%mutate(homeown_rate_level=ntile(homeown_rate,4))
-```
-
-```{r}
-pd<-pd%>%group_by(coll_grad_level,homeown_rate_level)%>% ## Group by predictor
-  ##Calculate mean at each level of predictor
-  mutate(pred_income_college_and_homeown=mean(percapinc.2010))%>% 
-  ## Ungroup
-  ungroup()%>% 
-  #Rank by prediction, with ties sorted randomly
-  mutate(pred_income_college_and_homeown_rank=rank(pred_income_college_and_homeown,ties.method="random"))
-```
-  
-```{r}
-pd%>%group_by(homeown_rate_level)%>% ## Group by predictor
-  ##Calculate mean at each level of predictor
-  summarise(pred_income_homeown_rate=mean(percapinc.2010))
-```
-```{r}
-rmse_cond_mean_two<-rmse(pd$percapinc.2010,pd$pred_income_coll_and_homeown)
-rmse_cond_mean_two
-```
-```{r}
-pd%>%group_by(college_grad_level)%>% ## Group by predictor
-  ##Calculate mean at each level of predictor
-  summarise(pred_income_college=mean(percapinc.2010))
-```
-
-
-
-
-#5 USE THESE CONDITIONAL MEANS AS A PREDICTION: FOR EVERY COUNTY, USE CONDITIONAL MEANS TO PROVIDE A 'BEST GUESS' AS TO THAT COUNTY'S LEVEL OF THE OUTCOME.
-
-#6 CALCULATE A SUMMARY MEASURE OF THE ERROR IN YOUR PREDICTIONS
