@@ -1,0 +1,73 @@
+---
+title: "04_Assignment_Barletta"
+output: html_document
+---
+
+Flat data is data that is arranged with one case per row, with one column per variable-- more or less. It's stored in a variety of formats, with different conventions. Our goal is to get it into the most useful format for analysis: what's known as tidy data. 
+
+```{r} 
+library(tidyverse)
+library(haven)
+library(readxl)
+```
+
+```{r}
+#Delimited files
+
+#Load in the HSB dataset from the UCLA statistical computing site
+
+hsb<-read_csv(file="https://stats.idre.ucla.edu/wp-content/uploads/2016/02/hsb2-2.csv")
+
+write_csv(hsb,path="hsb.csv")
+
+#Check it out
+head(hsb)
+
+##Need these for later
+my.names<-names(hsb)
+
+#Write this in a variety of formats to be used later
+write_delim(hsb, path="hsb.txt",delim="\t")
+
+write_delim(hsb, path="hsb_semicolon.txt",delim=";")
+
+gdata::write.fwf(data.frame(hsb),file="hsb.dat",sep="",colnames=FALSE)
+```
+
+#QUESTION 1
+```{r}
+oecd.rdata<-read_delim(file="http://www.wiley.com/legacy/wileychi/baltagi/supp/Gasoline.dat",  delim= " " )
+
+oecd.rdata
+```
+
+#QUESTION 2 
+```{r}
+nes.rdata<-read_spss("http://www.uta.edu/faculty/story/DataSets/NES2004.sav")
+
+nes.rdata
+```
+#QUESTION 3
+```{r}
+GSSRdata<-read_excel("~/Documents/8200/Scripts /GeneralSocialSurvey1996ExcelDataStudentVersion.xls",skip=0,col_names = TRUE)
+GSSRdata
+save(GSSRdata,file="GSS.Rdata")
+```
+
+#QUESTION 4 
+```{r}
+MainData<-read_csv(file="mainData.csv")
+MainData
+save(MainData,file="mainData.csv")
+```
+
+#QUESTION 5
+```{r}
+psid<-read_delim("http://users.nber.org/~rdehejia/data/psid_controls.txt", delim=" ")
+
+names(psid)<-c("treatment indicator", "age", "education", "Black", "Hispanic", "married", "nondegree","RE74","RE78")
+
+psid
+
+save(psid,file="psid.Rdata")
+```
