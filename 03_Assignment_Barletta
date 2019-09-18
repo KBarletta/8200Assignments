@@ -1,0 +1,104 @@
+---
+title: "03_Assignment_Barletta"
+  output:
+  word_document: default
+  html_document: default
+---
+
+```{r  include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(forcats)
+library(RColorBrewer)
+library(knitr)
+```
+
+```{r}
+load("attrition.Rdata")
+```
+
+```{r}
+## Crate a new variable named attrit and define it as 0
+at<-at%>%mutate(attrit=ifelse(Attrition=="Yes",1,0))
+
+table(at$Attrition)
+
+table(at$attrit)
+
+table(at$attrit,at$Attrition)
+```
+
+#QUESTION 1
+```{r}
+gg<-ggplot(at,aes(x=DMonthlyIncome))
+gg<-gg+geom_histogram(binwidth = 1,fill="lightblue")
+gg
+``` 
+
+```{r}
+gg<-ggplot(at,aes(x=DistanceFromHome))
+gg<-gg+geom_density()
+gg
+
+## Changing bandwidth-- not recommended, just showing you how. 
+gg<-gg+geom_density(bw=10)
+gg
+```
+
+
+#QUESTION 2
+```{r}
+at_sum<-at%>%
+  group_by(EducationField)%>%
+  summarize(avg_inc=mean(MonthlyIncome))
+at_sum
+```
+
+```{r}
+gg<-ggplot(at_sum,aes(x=fct_reorder(.f=as.factor(EducationField),
+                                    .x=avg_inc),
+                      y=avg_inc,
+                      fill=as.factor(EducationField)))
+gg_education<-gg_education+geom_bar(stat="Identity")
+## Use bar plot geometry, height of bars set by level observed in dataset
+gg<-gg+xlab("Amount of Travel")+ylab("Yearly Attrition")
+##Print
+gg_education
+```
+
+#QUESTION 3
+```{r}
+
+at_sum<-at%>%
+  group_by(EducationField,Gender)%>%
+  summarize(avg_inc=mean(MonthlyIncome))
+at_sum
+
+gg<-ggplot(at_sum,aes(x=fct_reorder(.f=as.factor(EducationField),
+                                    .x=avg_inc),
+                      y=avg_inc,
+                      fill=as.factor(Gender)))
+gg<-gg+geom_bar(stat="Identity",position="dodge)
+
+gg
+
+```
+
+#QUESTION 4
+
+```{r}
+
+at_sum<-at%>%
+  group_by(EducationField,Gender,JobLevel)%>%
+  summarize(avg_inc=mean(MonthlyIncome))
+
+gg<-ggplot(at_sum,aes(x=fct_reorder(.f=as.factor(EducationField),
+                                    .x=avg_inc),
+                      y=avg_inc,
+                      fill=as.factor(Gender)))
+gg<-gg+geom_bar(stat="Identity",position="dodge)
+
+gg<-gg+facet_wrap(~JobLevel)
+gg
+
+```
