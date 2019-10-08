@@ -1,0 +1,110 @@
+---
+title: "11_Assignment_Barletta"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Get libraries
+library(tidyverse)
+library(nycflights13)
+library(RSQLite)
+```
+
+#QUESTION 1 
+
+```{r}
+# Data sources from NYC flights
+data(flights)
+data(airlines)
+data(airports)
+data(weather)
+data(planes)
+```
+
+```{r}
+con <- dbConnect(RSQLite::SQLite(), ":memory:")
+```
+
+```{r}
+#List tables in database
+dbListTables(con)
+```
+
+```{r}
+con <- dbConnect(RSQLite::SQLite(), ":memory:")
+
+#Write flights tables to database (you won't usually do this)
+dbWriteTable(con,
+             "flights", 
+             as.data.frame(flights))
+
+dbWriteTable(con,
+             "planes", 
+             as.data.frame(planes))
+
+dbWriteTable(con,
+             "airlines", 
+             as.data.frame(airlines))
+
+dbWriteTable(con,
+             "weather", 
+             as.data.frame(weather))
+
+dbWriteTable(con,
+             "airports", 
+             as.data.frame(airports))
+```
+
+#QUESTION 2 
+
+```{r}
+#Generate a SQL request to a database
+req_text<-"Select * from flights where origin=='JFK'AND month==5"
+
+#Send query through connection
+req<-dbSendQuery(con,req_text)
+
+#Generate dataframe from results
+req_df<-dbFetch(req,n=-1)
+
+#Good practice: clear request
+dbClearResult(req)
+
+```
+Let's take a look at the generated data frame. 
+```{r}
+dim(req_df)
+
+head(req_df,20)
+```
+
+#QUESTION 3
+```{r}
+req1_text<-"SELECT f.dep_delay, f.origin, w.temp FROM flights f JOIN weather w WHERE f.origin=w.origin AND f.year=w.year AND f.month=w.month AND f.day=w.day AND f.hour=w.hour AND f.origin= 'EWR' AND f.dep_delay<10 AND w.temp<40"
+            
+req<-dbSendQuery(con,req_text)
+
+req_df<-dbFetch(req,n=-1)
+
+dbClearResult(req)
+
+head(req_df) 
+```
+#QUESTION 4
+```{r}
+req_text<-"Select * from flights" 
+
+req<-dbSendQuery(con,req_text)
+
+req_df<-dbFetch(req,n=-1)
+
+dbClearResult(req)
+
+question4<-req_df%>%filter(carrier=='UA')
+
+head(question4) 
+```
