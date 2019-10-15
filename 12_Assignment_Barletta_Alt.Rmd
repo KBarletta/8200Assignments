@@ -1,0 +1,118 @@
+---
+title: "12_Assignment_Barletta"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load libraries and Set Knit
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, results ='hide',include=TRUE,messages=FALSE)
+
+library(tidyverse)
+library(stats)
+library(flexclust)
+library(ggplot2)
+library(LICORS)
+library(knitr)
+library(modelr)
+```
+
+# QUESTION 1 - DOWNLOAD DATA SET FROM THE WEBSITE AND LOAD INTO R STUDIO 
+
+```{r load_data,results="asis"}
+library(readxl)
+ev<-read_xlsx("/Users/kimberlybarletta/Documents/8200/GitHub/LLO8200/turkiyestudentevaluation_generic.xlsx")
+```
+
+# QUESTION 2 - SELECT 10 VARIABLES TO SERVE AS BASIS FOR CLUSTERING 
+
+```{r kmeans}
+c_test <- stepFlexclust(ev, k = 2:7, nrep = 20)
+c_test
+plot(c_test)
+```
+
+#QUESTION 3 - RUN KMEANS APP
+```{r kmeans}
+cQ3 <- kmeanspp(ev, k = 3, start = "random", iter.max = 1000, nstart = 50)
+table(cQ3$cluster)
+```
+
+```{r kmeans}
+ev_km <-ev
+Clusters <- kmeans(ev_km, 4)
+ev_km$Clusters <- as.factor(Clusters$cluster)
+str(Clusters)
+Clusters$centers
+```
+
+#QUESTION 4 - SUMMARIZE THE CLUSTERS 
+```{r kmeans}
+var.means <- colMeans(ev)
+var.means <- var.means[-(length(var.means))]
+ev_km2 <- ev
+ev_km2$Clusters <- as.factor(Clusters$cluster)
+
+sum1 <- ev_km %>% group_by(Clusters) %>% summarize_all(funs(mean), na.rm = TRUE)
+sum1
+
+sum2 <- gather(sum1,-'Clusters', key = variable, value = value)
+sum2
+
+sum_total <- ev %>% summarize_all(funs(mean))
+
+sum_total <- gather(sum_total, key = variable, value = overall_mean)
+sum2 <- left_join(sum2, sum_total, by = "variable")
+sum2 <- sum2 %>% group_by(variable) %>% mutate(varmeans = mean(value))
+
+variable_labels <- rev(c(  
+  "repeat",
+  "attendance",
+  "difficulty",
+  "Q4",
+  "Q7",
+  "Q8",
+  "Q14",
+  "Q19",
+  "Q24",
+  "Q28"
+))
+
+g1 <- ggplot(data = sum2, aes(y = value, x = variable, fill = variable))
+g1 <- g1 + geom_bar(stat = "identity") + coord_flip() + theme(legend.position = "none")
+g1 <- g1 + scale_x_discrete(labels = variable_labels)
+g1 <- g1 + geom_point(data = sum2, aes(y = overall_mean, x = variable))
+g1 <- g1 + facet_wrap(~Clusters)
+g1
+
+```
+
+# QUESTION 5 - TRY RUNNING A HAC ALGORITHM 
+
+Hierachical Clustering Algorithms (HAC)
+
+Next we will apply hierarchical clustering methods using various distance metrics. 
+
+```{r hac}
+ev_HAC <- ev
+View(ev_HAC)
+
+distance  <- dist(ev_HAC, method = "euclidean")
+distance2 <- dist(ev_HAC, method = "maximum")
+distance3 <- dist(ev_HAC, method = "manhattan")
+distance4 <- dist(ev_HAC, method = "canberra")
+distance5 <- dist(ev_HAC, method = "binary")
+distance6 <- dist(ev_HAC, method = "minkowski")
+
+#DISPLAY THE RESULTS
+HAC <- hclust(distance3, method="complete")
+plot(HAC, cex=0.6, hang=-1)
+rect.hclust(HAC, k =4, border=2:5)
+```
+## KNITTING ERROR - When I try to knit this file to HTML I get an error that says "processing file: 12_Assignment_Barletta_Alt.Rmd
+Error in parse_block(g[-1], g[1], params.src) : duplicate label 'setup'
+Calls: <Anonymous> ... process_file -> split_file -> lapply -> FUN -> parse_block
+Execution halted"
