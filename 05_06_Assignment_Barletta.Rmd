@@ -1,0 +1,124 @@
+---
+title: "05_06_Assignment_Barletta"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#first let's load our libraries 
+
+```{r,echo=FALSE}
+rm(list=ls())
+library(tidyverse)
+library(forcats)
+library(ModelMetrics)
+library(modelr)
+library(ggplot2)
+```
+
+#now let's load in the data 
+
+```{r}
+load("~/Documents/8200/Scripts and Data Sets/els_train.Rdata")
+```
+
+#Let's create a historgram, for the sake of interest!
+
+```{r}
+els_train%>%summarize(mean(bynels2m,na.rm=TRUE))
+
+gg<-ggplot(els_train,aes(x=bynels2m))
+gg<-gg+geom_histogram()
+gg
+```
+#QUESTIONS 1,3, and 4 - 
+
+#1 - Choose a dependent variable and plot that dependent variable as a function of a contnuous independent variable
+
+#3 - Add a line of best fit to your graphic 
+
+#4 - Clean up the labeling and description of the graphic 
+
+##I am going to look at Reading Scores by SES
+
+```{r}
+
+mod1<-lm(bynels2r~byses1,data=els_train) #outcome on left, predictor on right 
+
+summary(mod1)
+confint(mod1)
+
+g1<-ggplot(els_train, aes(x=byses1,y=bynels2r))+ #specify data and x and y
+           geom_point(shape=1)+ #specify points
+           geom_smooth(method=lm)+ #ask for lm line - this overlays the linear model on a scatterplot
+xlab("Socioeconomic Status")+
+ylab("Reading Score")+    
+ggtitle("Reading Scores",subtitle= "by Socioeconomic Status")
+  
+g1
+
+#the following adds predictions back to the data frame - use this for question 4
+
+els_train<-els_train%>%add_predictions(mod1)%>%rename(pred1=pred) #predict using data in memory
+ 
+## RMSE
+rmse_1<-modelr::rmse(mod1,els_train);rmse_1
+
+#Question
+
+```
+#Question 5 - include a few sentences describing what the graphic shows 
+
+```{r}
+g1<-g1+geom_smooth(method="lm")
+g1<-g1+ylab("Reading Scores")+xlab("Socio Economic Status")
+g1
+```
+```{r}
+g1<-g1+geom_smooth(method="loess", color="red")
+g1<-g1+ylab("Reading Scores")+xlab("Socio Economic Status")
+g1
+```
+
+#Questions 6 and 7 
+
+#6 - Create a regression that predicts reading scores as a function of SES plus one other covariate, using the training data. 
+
+##I chose to examine reading score by SES and Math Scores
+
+#7 - Report the RMSE from a validation fo your model using the testing data 
+
+## The RMSE is 8.561206
+
+```{r}
+
+mod2<-lm(bynels2r~byses1+bynels2m,data=els_train) #outcome on left, predictor on right 
+
+summary(mod1)
+confint(mod1)
+
+g2<-ggplot(els_train, aes(x=byses1,y=bynels2r))+ #specify data and x and y
+           geom_point(shape=1)+ #specify points
+           geom_smooth(method=lm)+ #ask for lm line - this overlays the linear model on a scatterplot
+xlab("Socioeconomic Status and Math Scores")+
+ylab("Reading Score")+    
+ggtitle("Reading Scores",subtitle= "by Socioeconomic Status and Math Scores")
+  
+#the following adds predictions back to the data frame - use this for question 4
+
+els_train<-els_train%>%add_predictions(mod1)%>%rename(pred1=pred) #predict using data in memory
+ 
+## RMSE
+rmse_1<-modelr::rmse(mod1,els_train);rmse_1
+
+```
+
+```{r}
+g2<-ggplot
+
+## Let's make the dots smaller for readability
+g2<-g2+geom_point(size=.25)
+
+```
