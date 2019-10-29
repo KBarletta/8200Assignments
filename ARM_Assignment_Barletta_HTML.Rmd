@@ -1,0 +1,168 @@
+---
+title: "ARM_Assignment_Barletta"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, results ='show',include=TRUE,messages=FALSE)
+
+# Insert your consumerKey and consumerSecret below
+consumerKey='LFq54rl8YBtuLN9Xbuwpq2D3i'
+consumerSecret='9EipoKUBDS48yU7ASlqgXaBca9vyfDPnMLS7F96PkyGoXMciie'
+access_Token='1176634032563658752-UCSQmsdG4OB71EtpvWpd1kQUYbSHdE'
+access_Secret='384aC1wDXTMzCzft3UvZ5wadr5DcyAtxjkTmlk6xyXuQs'
+```
+
+Once you have your keys, you can set up the API.
+
+```{r api, include=TRUE}
+requestURL='https://api.twitter.com/oauth/request_token'
+accessURL='https://api.twitter.com/oauth/access_token'
+authURL='https://api.twitter.com/oauth/authorize'
+
+library(arules)
+library(rtweet)
+library(twitteR)
+library(ROAuth)
+library(jsonlite)
+library(rjson)
+library(tokenizers)
+library(tidyverse)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(syuzhet)
+library(stringr)
+library(arulesViz)
+library(tm)
+library(wordcloud)
+library(RColorBrewer)
+```
+
+# QUESTION 1 - RUN THE ARM CODE WITH A HASHTAG OF YOUR CHOOSING 
+
+## I chose to use "tuition" as my word because I am working on a presentation about reducing tuition costs for my organization.
+
+```{r tweets, include=TRUE}
+##############  Using twittR ##########################################################
+setup_twitter_oauth(consumerKey,consumerSecret,access_Token,access_Secret)
+Search<-twitteR::searchTwitter("#Tuition",n=90,since="2018-09-09")
+(Search_DF <- twListToDF(Search))
+TransactionTweetsFile = "Choc.csv"
+(Search_DF$text[1])
+## Start the file
+Trans <- file(TransactionTweetsFile)
+## Tokenize to words 
+Tokens<-tokenizers::tokenize_words(Search_DF$text[1],stopwords = stopwords::stopwords("en"), 
+          lowercase = TRUE,  strip_punct = TRUE, strip_numeric = TRUE,simplify = TRUE)
+## Write squished tokens
+cat(unlist(str_squish(Tokens)), "\n", file=Trans, sep=",")
+close(Trans)
+## Append remaining lists of tokens into file
+## Recall - a list of tokens is the set of words from a Tweet
+Trans <- file(TransactionTweetsFile, open = "a")
+for(i in 2:nrow(Search_DF)){
+  Tokens<-tokenize_words(Search_DF$text[i],stopwords = stopwords::stopwords("en"), 
+            lowercase = TRUE,  strip_punct = TRUE, simplify = TRUE)
+  cat(unlist(str_squish(Tokens)), "\n", file=Trans, sep=",")
+}
+close(Trans)
+```
+#QUESTION 2 - CREATE A WORD CLOUD 
+
+```{r baskets, include=TRUE}
+######### Read in the tweet transactions
+TweetTrans <- read.transactions(TransactionTweetsFile,
+                                rm.duplicates = FALSE, 
+                                format = "basket",
+                                sep=","
+                                ## cols = 
+                                )
+## See the words that occur the most
+Sample_Trans <- sample(TweetTrans, 50)
+summary(Sample_Trans)
+## Read the transactions data into a dataframe
+TweetDF <- read.csv(TransactionTweetsFile, header = FALSE, sep = ",")
+head(TweetDF)
+(str(TweetDF))
+```
+
+#Identify words that are non-informative
+
+```{r clean,  include=TRUE}
+## Convert all columns to char 
+TweetDF<-TweetDF %>%
+  mutate_all(as.character)
+(str(TweetDF))
+# We can now remove certain words
+TweetDF[TweetDF == "t.co"] <- ""
+TweetDF[TweetDF == "rt"] <- ""
+TweetDF[TweetDF == "http"] <- ""
+TweetDF[TweetDF == "https"] <- ""
+TweetDF[TweetDF == "end"] <- ""
+TweetDF[TweetDF == "latest"] <- ""
+TweetDF[TweetDF == "sure"] <- ""
+TweetDF[TweetDF == "correct"] <- ""
+TweetDF[TweetDF == "mayereditor"] <- ""
+TweetDF[TweetDF == "hrexecmag"] <- ""
+TweetDF[TweetDF == "adding"] <- ""
+TweetDF[TweetDF == "via"] <- ""
+## Clean with grepl - every row in each column
+MyDF<-NULL
+for (i in 1:ncol(TweetDF)){
+  MyList=c() # each list is a column of logicals ...
+  MyList=c(MyList,grepl("[[:digit:]]", TweetDF[[i]]))
+  MyDF<-cbind(MyDF,MyList)  ## create a logical DF
+  ## TRUE is when a cell has a word that contains digits
+}
+## For all TRUE, replace with blank
+TweetDF[MyDF] <- ""
+(head(TweetDF,10))
+# Now we save the dataframe using the write table command 
+write.table(TweetDF, file = "UpdatedChocolate.csv", col.names = FALSE, 
+            row.names = FALSE, sep = ",")
+TweetTrans <- read.transactions("UpdatedChocolate.csv", sep =",", 
+            format("basket"),  rm.duplicates = TRUE)
+```
+
+# QUESTION 3 - CREATE TRANSACTION DATA AND IDENTIFY 5 RULES THAT ARE MOST INTERESTING
+
+```{r transaction, include=TRUE}
+######### Read in the tweet transactions
+TweetTrans <- read.transactions(TransactionTweetsFile,
+                                rm.duplicates = FALSE, 
+                                format = "basket",
+                                sep=","
+                                ## cols = 
+                                )
+arules::inspect(TweetTrans)
+## See the words that occur the most
+Sample_Trans <- sample(TweetTrans, 50)
+summary(Sample_Trans)
+## Read the transactions data into a dataframe
+TweetDF <- read.csv(TransactionTweetsFile, header = FALSE, sep = ",")
+head(TweetDF)
+(str(TweetDF))
+```
+
+```{r rules, include=TRUE}
+# So that you do not have an enormous amount of rules, you can thresholds for
+# support, confidence and lift ... also minlength for the rules. 
+TweetTrans_rules = arules::apriori(TweetTrans, 
+            parameter = list(support=.025, confidence=.75, minlen=3))
+arules::inspect(TweetTrans_rules[1:10])
+## sorted
+SortedRules_conf <- sort(TweetTrans_rules, by="confidence", decreasing=TRUE)
+arules::inspect(SortedRules_conf[1:20])
+SortedRules_sup <- sort(TweetTrans_rules, by="support", decreasing=TRUE)
+arules::inspect(SortedRules_sup[1:20])
+```
+
+# QUESTION 4 - CREATE A VISUALIZATION OF THE RULES FOUND AS A RESULT OF YOUR ARM
+
+The results will be displayed as an interactive graph.
+
+```{r graph, include=TRUE}
+plot (SortedRules_sup[1:50],method="graph",shading="confidence") 
+plot (SortedRules_conf[1:50],method="graph",shading="confidence") 
+```
