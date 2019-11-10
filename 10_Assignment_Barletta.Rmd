@@ -1,0 +1,80 @@
+---
+title: "10_Assignment_Barletta"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(modelr)
+library(caret)
+library(tictoc)
+```
+
+#Question 1:
+
+```{r}
+CarTrainingData<-read_csv(file="/Users/kimberlybarletta/Documents/8200/Scripts and Data Sets/training.csv")
+CarTrainingData
+save(CarTrainingData,file="train.Rdata")
+
+#Let's see how age impacts the probability of a car being a lemon
+mod_1<-lm(IsBadBuy~VehicleAge,data=CarTrainingData)
+summary(mod_1)
+```
+
+```{r}
+#putting the data into crossfold function
+CarTrainingData_cf<-CarTrainingData%>%
+ crossv_kfold(10)
+CarTrainingData_cf
+```
+
+```{r}
+tic()
+rmse_mod1<-CarTrainingData_cf %>%
+ mutate(train = map(train, as_tibble)) %>% ## Convert to tibbles
+ mutate(model = map(train, ~ lm(mod_1,
+ data = .))) %>%
+ mutate(rmse = map2_dbl(model, test, rmse)) %>% ## apply model, get rmse
+ select(.id, rmse) ## pull just id and rmse
+toc()
+```
+
+```{r}
+summary(rmse_mod1$rmse)
+gg<-ggplot(rmse_mod1,aes(rmse))
+gg<-gg+geom_density()
+gg
+```
+
+#Question 2: 
+
+```{r}
+CarTrainingData_cv<-CarTrainingData%>%
+ crossv_mc(n=100,test=.2)
+CarTrainingData_cv
+```
+
+
+```{r}
+tic()
+mod1_rmse_cv<-CarTrainingData_cv %>%
+ mutate(train = map(train, as_tibble)) %>% ## Convert to tibbles
+ mutate(model = map(train, ~ lm(mod_1, data = .)))%>%
+ mutate(rmse = map2_dbl(model, test, rmse))%>%
+ select(.id, rmse) ## pull just id and rmse
+mod1_rmse_cv
+toc()
+```
+
+
+```{r}
+summary(mod1_rmse_cv$rmse)
+gg<-ggplot(mod1_rmse_cv,aes(rmse))
+gg<-gg+geom_density(bins=50,fill="blue",alpha=.2)
+gg
+```
